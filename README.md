@@ -47,6 +47,8 @@ The Timestep Length and Elapsed Duration were chosen empirically, as a treade-of
 The simulator waypoints are transformed from world space to car space, where the car is in the origin (0,0).
 A third degree polynomial is used in the model to account for the turns (in the class example, only lines were fitted). All derivatives are handled by CppAD library, and the solution is obtained using IpOpt.
 
+To account for smoothness in steering, I add some weights in computing the cost. The differnces in steering and cost of using steering are 100-times higher than the rest(300, and 400 respectively). This ensures a smooth steering model.
+
 # Model Predictive Control with Latency
 
 Here, having dt = latency = 100 ms, this simplfies the problem. The actuations depend on the previous run, so we set vars_lowerbound and vars_upperbound and  in lines 229-239 in MPC.cpp with previous throttle and steer predictions. We also skip the first actuator value by num_latency_states (one state in this case), and take the one into the future - lines 307-309 in MPC.cpp. This trick works because the actuator latency is divisible by the time step duration dt.
