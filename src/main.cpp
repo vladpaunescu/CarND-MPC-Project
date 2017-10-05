@@ -98,35 +98,59 @@ int main() {
           * Both are in between [-1, 1].
           *
           */
-          double steer_value;
-          double throttle_value;
+
+          // convert to vehicle relative waypoints
+          vector<double> vehicle_ptsx;
+          vector<double> vehicle_ptsy;
+
+          for (int i = 0; i < ptsx.size(); i++) {
+            double dx = ptsx[i] - px;
+            double dy = ptsy[i] - py;
+            vehicle_ptsx.push_back(dx * cos(-psi) - dy * sin(-psi));
+            vehicle_ptsy.push_back(dx * sin(-psi) + dy * cos(-psi));
+          }
+
+          Eigen::Map<Eigen::VectorXd> x(&vehicle_ptsx[0], 6);
+          Eigen::Map<Eigen::VectorXd> y(&vehicle_ptsy[0], 6);
+
+          // The polynomial is fitted using a 3rd order polynomial
+          // order 1 is sufficient.
+          auto coeffs = polyfit(x, y, 3);
+          // The cross track error is calculated by evaluating at polynomial at x, f(x)
+          double cte = polyeval(coeffs, 0);
+
+          // Due to the sign starting at 0, the orientation error is -f'(x).
+          // derivative of coeffs[0] + coeffs[1] * x -> coeffs[1]
+          double epsi = -atan(coeffs[1]);
+
+          // state vector
+          Eigen::VectorXd state(6);
+          state << 0, 0, 0, v, cte, epsi;
+
+          //solve
+          auto vars = mpc.Solve(state, coeffs);
 
           json msgJson;
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
           // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
-          msgJson["steering_angle"] = steer_value;
-          msgJson["throttle"] = throttle_value;
+          msgJson["steering_angle"] = mpc.steering_delta_ / MPC::DEGREE_LIMIT;;
+          msgJson["throttle"] = mpc.a_;
 
-          //Display the MPC predicted trajectory 
-          vector<double> mpc_x_vals;
-          vector<double> mpc_y_vals;
+          //Display the MPC predicted trajectory
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Green line
 
-          msgJson["mpc_x"] = mpc_x_vals;
-          msgJson["mpc_y"] = mpc_y_vals;
+          msgJson["mpc_x"] = mpc.pred_waypoint_x_;
+          msgJson["mpc_y"] = mpc.pred_waypoint_y_;
 
           //Display the waypoints/reference line
-          vector<double> next_x_vals;
-          vector<double> next_y_vals;
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Yellow line
 
-          msgJson["next_x"] = next_x_vals;
-          msgJson["next_y"] = next_y_vals;
-
+          msgJson["next_x"] = vehicle_ptsx;
+          msgJson["next_y"] = vehicle_ptsy;
 
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
           std::cout << msg << std::endl;
