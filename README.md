@@ -11,25 +11,23 @@ Here is my project video with MPC in action on track:
 # The Model
 
 The goal is to use a Physics model to drive a car using controls by following a set of predefined waypoints.
-The Model Predictive Control uses a Physicos model to keep the car on the track given the waypoints provided by the simulator. One of the challenges is the 100 ms delay between sensor reading and actuator commands.
+The Model Predictive Control uses a Physics model to keep the car on the track given the waypoints provided by the simulator. One of the challenges is the 100 ms delay between sensor reading and actuator commands.
 
 The actuators used are:
 
 * steering angle (delta)
-* acceleration/deceleration (throttle/break
+* acceleration/deceleration (throttle/break)
 
 There are 2 Vehicle models than can be used:
 
 * Kinematic model - only kinematic equations (velocity/steering)
 Kinematic models are simplifications of dynamic models that ignore tire forces, gravity, and mass.
-* Dynamic model - Dynamic models aim to embody the actual vehicle dynamics as closely as possible.
-
-They might encompass tire forces, longitudinal and lateral forces, inertia, gravity, air resistance, drag, mass, and the geometry of the vehicle.
+* Dynamic model - Dynamic models aim to embody the actual vehicle dynamics as closely as possible. They might encompass tire forces, longitudinal and lateral forces, inertia, gravity, air resistance, drag, mass, and the geometry of the vehicle.
 
 Current MPC implementation uses a Kinematic model. It ignores forces, gravity, and mass. On the current environment, it achieves good speed/accuracy trade-off.
 
 
-The kinematic model uses the following equations
+The kinematic model uses the following equations:
 
 ```
       x_[t+1] = x[t] + v[t] * cos(psi[t]) * dt
@@ -41,17 +39,17 @@ The kinematic model uses the following equations
       
 ```
 # Timestep Length and Elapsed Duration (N & dt)
-The Timestep Length and Elapsed Duration were chosen empirically, as a treade-off between speed and accuracy. I used N = 10 and dt = 0.1 with safe speeds of up to 70 mph. This means that the optimizer is considering a one-second duration in which to determine a corrective trajectory. Other values tried include 20 / 0.05. This is more computationally intensive, but it works well, in a smooth manner. However, it overshoots in steep turns.
- With 5/ 0.1, the car quickly jumps off the track.  The MPC is not able to see enough steps into the future so it drives the car off the road.
+The Timestep Length and Elapsed Duration were chosen empirically, as a treade-off between speed and accuracy. I used N = 10 and dt = 0.1 with safe speeds of up to 70 mph. This means that the optimizer is considering a one-second duration with ten time steps for which it computes the best controls to control the trajectory and stay on course. Other values tried include 20 / 0.05. This is more computationally intensive, but it works well, in a smooth manner. However, it overshoots in steep turns.
+ With 5/0.1, the car quickly jumps off the track.  The MPC is not able to see enough steps into the future so it drives the car off the road.
 
 
 # Polynomial Fitting and MPC Preprocessing
-The simulator waypoints are transformed form world space to car space, where the car is in the origin (0,0).
-A third degree polynomial is used in the model to accunt for the turns (in the class example, only lines were fitted). All derivatives are handles by CPpAdd library, and the solution is obtained using IpOpt/
+The simulator waypoints are transformed from world space to car space, where the car is in the origin (0,0).
+A third degree polynomial is used in the model to account for the turns (in the class example, only lines were fitted). All derivatives are handled by CPpAD library, and the solution is obtained using IpOpt.
 
 # Model Predictive Control with Latency
 
-Here, dt = latency = 100ms, this simplfies the problem. The actuations depend on the previous run, so we set vars_lowerbound and vars_upperbound and  in lines 229-239 in MPC.cpp with previous throttle and steer predictions. We also, skip the first actuator value by num_latency_states, and take the one into the future - lines 307-309 in MPC.cpp This trick works because the actuator latency is divisible by the time step duration dt.
+Here, having dt = latency = 100 ms, this simplfies the problem. The actuations depend on the previous run, so we set vars_lowerbound and vars_upperbound and  in lines 229-239 in MPC.cpp with previous throttle and steer predictions. We also skip the first actuator value by num_latency_states (one state in this case), and take the one into the future - lines 307-309 in MPC.cpp. This trick works because the actuator latency is divisible by the time step duration dt.
 
 ## Dependencies
 
