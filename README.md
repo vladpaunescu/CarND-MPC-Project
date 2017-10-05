@@ -45,7 +45,7 @@ The Timestep Length and Elapsed Duration were chosen empirically, as a treade-of
 
 # Polynomial Fitting and MPC Preprocessing
 The simulator waypoints are transformed from world space to car space, where the car is in the origin (0,0).
-A third degree polynomial is used in the model to account for the turns (in the class example, only lines were fitted). All derivatives are handled by CPpAD library, and the solution is obtained using IpOpt.
+A third degree polynomial is used in the model to account for the turns (in the class example, only lines were fitted). All derivatives are handled by CppAD library, and the solution is obtained using IpOpt.
 
 # Model Predictive Control with Latency
 
